@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const swaggerUi = require('swagger-ui-express');
 const config = require('./config');
+const swaggerSpec = require('./config/swagger');
 const resourceRoutes = require('./api/routes/resource.routes');
-const { apiKeyMiddleware } = require('./api/middlewares/apiKey.middleware');
+const { authenticateJWT } = require('./api/middlewares/auth.middleware');
 const { rateLimiter } = require('./api/middlewares/rateLimiter.middleware');
 
 const app = express();
@@ -16,11 +18,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Apply API key protection
-app.use(apiKeyMiddleware);
-
 // Apply rate limiting
 app.use(rateLimiter);
+
+// Apply JWT authentication (Supabase OAuth2)
+app.use(authenticateJWT);
+
+// Swagger documentation (no API key required)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

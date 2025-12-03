@@ -3,8 +3,8 @@ const config = require('../../config');
 const apiKeyMiddleware = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
 
-  // Skip API key check for health endpoint
-  if (req.path === '/health') {
+  // Skip API key check for health endpoint and API docs
+  if (req.path === '/health' || req.path.startsWith('/api-docs')) {
     return next();
   }
 

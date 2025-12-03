@@ -3,7 +3,7 @@ const { getSupabaseClient } = require('../../infrastructure/database/supabase');
 const getAllResources = async (req, res, next) => {
   try {
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('resources')
       .select('*');
@@ -29,7 +29,7 @@ const getResourceById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('resources')
       .select('*')
@@ -57,7 +57,7 @@ const createResource = async (req, res, next) => {
   try {
     const resourceData = req.body;
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('resources')
       .insert([resourceData])
@@ -86,7 +86,7 @@ const updateResource = async (req, res, next) => {
     const { id } = req.params;
     const resourceData = req.body;
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('resources')
       .update(resourceData)
@@ -115,7 +115,7 @@ const deleteResource = async (req, res, next) => {
   try {
     const { id } = req.params;
     const supabase = getSupabaseClient();
-    
+
     const { error } = await supabase
       .from('resources')
       .delete()
