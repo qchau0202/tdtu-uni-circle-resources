@@ -3,10 +3,26 @@ const { getSupabaseClient } = require('../../infrastructure/database/supabase');
 const getAllResources = async (req, res, next) => {
   try {
     const supabase = getSupabaseClient();
+    const { course_code, hashtag } = req.query;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('resources')
-      .select('*');
+      .select(`
+        *,
+        owner:students(id, student_code, email)
+      `);
+
+    // Filter by course_code if provided
+    if (course_code) {
+      query = query.eq('course_code', course_code);
+    }
+
+    // Filter by hashtag if provided (using array contains)
+    if (hashtag) {
+      query = query.contains('hashtags', [hashtag]);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return res.status(400).json({
@@ -32,7 +48,10 @@ const getResourceById = async (req, res, next) => {
 
     const { data, error } = await supabase
       .from('resources')
-      .select('*')
+      .select(`
+        *,
+        owner:students(id, student_code, email)
+      `)
       .eq('id', id)
       .single();
 
