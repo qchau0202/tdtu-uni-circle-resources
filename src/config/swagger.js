@@ -14,7 +14,7 @@ const options = {
         },
         servers: [
             {
-                url: `http://localhost:${config.port}`,
+                url: `http://localhost:${config.port}/api/resources`,
                 description: 'Development server',
             },
         ],
@@ -26,11 +26,18 @@ const options = {
                     name: 'x-api-key',
                     description: 'API key for service authentication',
                 },
+                BearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'JWT token for user authentication',
+                },
             },
         },
         security: [
             {
                 ApiKeyAuth: [],
+                BearerAuth: [],
             },
         ],
     },
