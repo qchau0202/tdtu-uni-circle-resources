@@ -358,8 +358,27 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *                     items:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: Unique identifier for the file
  *                         url:
  *                           type: string
+ *                         publicId:
+ *                           type: string
+ *                           description: Cloudinary public ID
+ *                         format:
+ *                           type: string
+ *                           description: File format/extension
+ *                         size:
+ *                           type: integer
+ *                           description: File size in bytes
+ *                         originalName:
+ *                           type: string
+ *                           description: Original filename
+ *                         uploadedAt:
+ *                           type: string
+ *                           format: date-time
  *                         caption:
  *                           type: string
  *                   images:
@@ -367,8 +386,23 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *                     items:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: Unique identifier for the image
  *                         url:
  *                           type: string
+ *                         publicId:
+ *                           type: string
+ *                         format:
+ *                           type: string
+ *                         size:
+ *                           type: integer
+ *                         originalName:
+ *                           type: string
+ *                         uploadedAt:
+ *                           type: string
+ *                           format: date-time
  *                         caption:
  *                           type: string
  *                   videos:
@@ -376,8 +410,23 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *                     items:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: Unique identifier for the video
  *                         url:
  *                           type: string
+ *                         publicId:
+ *                           type: string
+ *                         format:
+ *                           type: string
+ *                         size:
+ *                           type: integer
+ *                         originalName:
+ *                           type: string
+ *                         uploadedAt:
+ *                           type: string
+ *                           format: date-time
  *                         caption:
  *                           type: string
  *                   documents:
@@ -385,8 +434,23 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *                     items:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: Unique identifier for the document
  *                         url:
  *                           type: string
+ *                         publicId:
+ *                           type: string
+ *                         format:
+ *                           type: string
+ *                         size:
+ *                           type: integer
+ *                         originalName:
+ *                           type: string
+ *                         uploadedAt:
+ *                           type: string
+ *                           format: date-time
  *                         caption:
  *                           type: string
  *                   urls:
@@ -394,6 +458,10 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *                     items:
  *                       type: object
  *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                           description: Unique identifier for the URL reference
  *                         url:
  *                           type: string
  *                         caption:
@@ -408,8 +476,24 @@ router.post('/upload', upload.single('file'), resourceController.uploadFile);
  *             course_code: "503045"
  *             resource_type: "DOCUMENT"
  *             media:
- *               images: [{ url: "https://res.cloudinary.com/image1.jpg", caption: "Diagram 1" }]
- *               documents: [{ url: "https://res.cloudinary.com/doc1.pdf", caption: "Chapter 1" }]
+ *               images: 
+ *                 - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                   url: "https://res.cloudinary.com/image1.jpg"
+ *                   publicId: "resources/image1"
+ *                   format: "jpg"
+ *                   size: 245680
+ *                   originalName: "diagram.jpg"
+ *                   uploadedAt: "2025-12-05T10:30:00Z"
+ *                   caption: "Diagram 1"
+ *               documents:
+ *                 - id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+ *                   url: "https://res.cloudinary.com/doc1.pdf"
+ *                   publicId: "resources/doc1"
+ *                   format: "pdf"
+ *                   size: 1024000
+ *                   originalName: "chapter1.pdf"
+ *                   uploadedAt: "2025-12-05T10:30:00Z"
+ *                   caption: "Chapter 1"
  *             hashtags: ["midterm", "data-structures"]
  *         multipart/form-data:
  *           schema:
@@ -642,5 +726,212 @@ router.put('/:id', resourceController.updateResource);
  *                 status: 404
  */
 router.delete('/:id', resourceController.deleteResource);
+
+/**
+ * @swagger
+ * /api/resources/{resourceId}/files/{fileId}:
+ *   delete:
+ *     summary: Delete a specific file from a resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: resourceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Resource ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: File ID to delete
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "File deleted successfully"
+ *                 resource:
+ *                   $ref: '#/components/schemas/Resource'
+ *       400:
+ *         description: Invalid resource ID or file ID format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "INVALID_FILE_ID"
+ *                 message: "Invalid file ID format"
+ *                 status: 400
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "AUTHENTICATION_REQUIRED"
+ *                 message: "Authentication required to delete file"
+ *                 status: 401
+ *       403:
+ *         description: Permission denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "FORBIDDEN"
+ *                 message: "You do not have permission to delete this file"
+ *                 status: 403
+ *       404:
+ *         description: Resource or file not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "FILE_NOT_FOUND"
+ *                 message: "File not found in resource"
+ *                 status: 404
+ */
+router.delete('/:resourceId/:type/:index', resourceController.deleteFileFromResource);
+
+/**
+ * @swagger
+ * /api/resources/{resourceId}/files/{fileId}:
+ *   patch:
+ *     summary: Update file metadata in a resource
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: resourceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Resource ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: File ID to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 description: File caption
+ *                 example: "Updated diagram caption"
+ *               originalName:
+ *                 type: string
+ *                 description: Original file name
+ *                 example: "new_name.jpg"
+ *           examples:
+ *             updateCaption:
+ *               summary: Update caption only
+ *               value:
+ *                 caption: "New caption for the file"
+ *             updateBoth:
+ *               summary: Update caption and name
+ *               value:
+ *                 caption: "Updated caption"
+ *                 originalName: "updated_file.jpg"
+ *     responses:
+ *       200:
+ *         description: File updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "File updated successfully"
+ *                 resource:
+ *                   $ref: '#/components/schemas/Resource'
+ *       400:
+ *         description: Invalid input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               invalidId:
+ *                 summary: Invalid ID format
+ *                 value:
+ *                   error:
+ *                     code: "INVALID_FILE_ID"
+ *                     message: "Invalid file ID format"
+ *                     status: 400
+ *               invalidUpdates:
+ *                 summary: No valid fields
+ *                 value:
+ *                   error:
+ *                     code: "INVALID_UPDATES"
+ *                     message: "No valid fields to update. Allowed fields: caption, originalName"
+ *                     status: 400
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "AUTHENTICATION_REQUIRED"
+ *                 message: "Authentication required to update file"
+ *                 status: 401
+ *       403:
+ *         description: Permission denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "FORBIDDEN"
+ *                 message: "You do not have permission to update this file"
+ *                 status: 403
+ *       404:
+ *         description: Resource not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error:
+ *                 code: "RESOURCE_NOT_FOUND"
+ *                 message: "Resource not found"
+ *                 status: 404
+ */
+router.patch('/:resourceId/:type/:index', resourceController.updateFileInResource);
 
 module.exports = router;

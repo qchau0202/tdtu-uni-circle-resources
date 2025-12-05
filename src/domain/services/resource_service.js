@@ -1,6 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 const config = require('../../config');
 const Resource = require('../models/resource_model');
+const fileService = require('./file_service');
+const crypto = require('crypto');
 
 class ResourceService {
     constructor() { }
@@ -137,13 +139,13 @@ class ResourceService {
         return Resource.fromDatabase(data);
     }
 
-    async updateResource(token, id, resourceData, currentUserId) {
+    async updateResource(token, id, resourceData, currentUserId, newFiles = null, fileOperations = null) {
         const supabase = this.createSupabaseClient(token);
 
         // Check if resource exists and user is the owner
         const { data: existingResource, error: fetchError } = await supabase
             .from('resources')
-            .select('owner_id')
+            .select('*')
             .eq('id', id)
             .maybeSingle();
 
@@ -166,8 +168,88 @@ class ResourceService {
         if (resourceData.description !== undefined) updateData.description = resourceData.description?.trim() || null;
         if (resourceData.course_code !== undefined) updateData.course_code = resourceData.course_code?.trim() || null;
         if (resourceData.resource_type) updateData.resource_type = resourceData.resource_type.toUpperCase();
-        if (resourceData.media) updateData.media = resourceData.media;
         if (resourceData.hashtags !== undefined) updateData.hashtags = resourceData.hashtags;
+
+        // Simple approach: if media is provided, use it; otherwise keep existing
+        let media = existingResource.media || { link: [], files: [], images: [], videos: [], documents: [] };
+
+        // If new files are uploaded, add them to the media
+        if (newFiles && newFiles.length > 0) {
+            // Get next IDs for each category
+            const nextFileId = (media.files && media.files.length > 0)
+                ? Math.max(...media.files.map(f => f.id || 0)) + 1
+                : 1;
+            const nextImageId = (media.images && media.images.length > 0)
+                ? Math.max(...media.images.map(f => f.id || 0)) + 1
+                : 1;
+            const nextVideoId = (media.videos && media.videos.length > 0)
+                ? Math.max(...media.videos.map(f => f.id || 0)) + 1
+                : 1;
+            const nextDocId = (media.documents && media.documents.length > 0)
+                ? Math.max(...media.documents.map(f => f.id || 0)) + 1
+                : 1;
+
+            let fileIdCounter = nextFileId;
+            let imageIdCounter = nextImageId;
+            let videoIdCounter = nextVideoId;
+            let docIdCounter = nextDocId;
+
+            for (const file of newFiles) {
+                const uploadResult = await fileService.uploadFile(file.buffer, file.originalname);
+
+                const fileData = {
+                    id: fileIdCounter++,
+                    url: uploadResult.url,
+                    size: uploadResult.size,
+                    format: uploadResult.format,
+                    caption: null,
+                    publicId: uploadResult.publicId,
+                    uploadedAt: new Date().toISOString(),
+                    originalName: file.originalname
+                };
+
+                // Add to files array
+                media.files = media.files || [];
+                media.files.push(fileData);
+
+                // Categorize by file type with separate IDs
+                if (uploadResult.resourceType === 'image') {
+                    media.images = media.images || [];
+                    media.images.push({ ...fileData, id: imageIdCounter++ });
+                } else if (uploadResult.resourceType === 'video') {
+                    media.videos = media.videos || [];
+                    media.videos.push({ ...fileData, id: videoIdCounter++ });
+                } else {
+                    media.documents = media.documents || [];
+                    media.documents.push({ ...fileData, id: docIdCounter++ });
+                }
+            }
+        }
+
+        // Handle links from form data
+        if (resourceData.links) {
+            const nextLinkId = (media.link && media.link.length > 0)
+                ? Math.max(...media.link.map(l => l.id || 0)) + 1
+                : 1;
+
+            let linkIdCounter = nextLinkId;
+            media.link = media.link || [];
+
+            resourceData.links.forEach(link => {
+                media.link.push({
+                    id: linkIdCounter++,
+                    url: link.url,
+                    description: link.description || null
+                });
+            });
+        }
+
+        // If frontend sends updated media structure (with removed items), use it
+        if (resourceData.media) {
+            media = resourceData.media;
+        }
+
+        updateData.media = media;
 
         const { data, error } = await supabase
             .from('resources')
@@ -219,6 +301,135 @@ class ResourceService {
         }
 
         return true;
+    }
+
+    /**
+     * Delete a specific file from a resource by type and index
+     * @param {String} token - Auth token
+     * @param {Number} resourceId - Resource ID
+     * @param {String} type - File type (images, videos, documents)
+     * @param {Number} index - File index in the array
+     * @param {Number} currentUserId - Current user ID
+     * @returns {Object} - Updated resource
+     */
+    async deleteFileFromResource(token, resourceId, type, index, currentUserId) {
+        const supabase = this.createSupabaseClient(token);
+
+        // Get the resource
+        const { data: resource, error: fetchError } = await supabase
+            .from('resources')
+            .select('*')
+            .eq('id', resourceId)
+            .maybeSingle();
+
+        if (fetchError) {
+            throw new Error(`Failed to fetch resource: ${fetchError.message}`);
+        }
+
+        if (!resource) {
+            return null;
+        }
+
+        // Check ownership
+        if (resource.owner_id !== currentUserId) {
+            throw new Error('FORBIDDEN');
+        }
+
+        const media = resource.media || {};
+
+        if (!media[type] || !Array.isArray(media[type])) {
+            throw new Error(`Invalid media type: ${type}`);
+        }
+
+        if (index < 0 || index >= media[type].length) {
+            throw new Error(`Index ${index} out of range for ${type}`);
+        }
+
+        const removedFile = media[type][index];
+        console.log(`Soft deleted ${type}[${index}]: ${removedFile.publicId} (kept in Cloudinary)`);
+
+        // Remove from array
+        media[type].splice(index, 1);
+
+        // Update the resource
+        const { data: updatedResource, error: updateError } = await supabase
+            .from('resources')
+            .update({ media, updated_at: new Date().toISOString() })
+            .eq('id', resourceId)
+            .select()
+            .single();
+
+        if (updateError) {
+            throw new Error(`Failed to update resource: ${updateError.message}`);
+        }
+
+        return updatedResource;
+    }
+
+    /**
+     * Update file metadata in a resource by type and index
+     * @param {String} token - Auth token
+     * @param {Number} resourceId - Resource ID
+     * @param {String} type - File type (images, videos, documents)
+     * @param {Number} index - File index in the array
+     * @param {Object} updates - Properties to update (e.g., { caption: 'New caption' })
+     * @param {Number} currentUserId - Current user ID
+     * @returns {Object} - Updated resource
+     */
+    async updateFileInResource(token, resourceId, type, index, updates, currentUserId) {
+        const supabase = this.createSupabaseClient(token);
+
+        // Get the resource
+        const { data: resource, error: fetchError } = await supabase
+            .from('resources')
+            .select('*')
+            .eq('id', resourceId)
+            .maybeSingle();
+
+        if (fetchError) {
+            throw new Error(`Failed to fetch resource: ${fetchError.message}`);
+        }
+
+        if (!resource) {
+            return null;
+        }
+
+        // Check ownership
+        if (resource.owner_id !== currentUserId) {
+            throw new Error('FORBIDDEN');
+        }
+
+        const media = resource.media || {};
+
+        if (!media[type] || !Array.isArray(media[type])) {
+            throw new Error(`Invalid media type: ${type}`);
+        }
+
+        if (index < 0 || index >= media[type].length) {
+            throw new Error(`Index ${index} out of range for ${type}`);
+        }
+
+        // Update allowed properties
+        const allowedUpdates = ['caption', 'originalName'];
+        for (const key of allowedUpdates) {
+            if (updates[key] !== undefined) {
+                media[type][index][key] = updates[key];
+            }
+        }
+
+        // Update the resource
+        const { data: updatedResource, error: updateError } = await supabase
+            .from('resources')
+            .update({ media, updated_at: new Date().toISOString() })
+            .eq('id', resourceId)
+            .select()
+            .single();
+
+        if (updateError) {
+            throw new Error(`Failed to update resource: ${updateError.message}`);
+        }
+
+        return updatedResource;
     }
 }
 

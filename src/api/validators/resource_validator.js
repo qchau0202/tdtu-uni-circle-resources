@@ -41,6 +41,10 @@ const validateCreateResource = (data) => {
                 if (!img.url || typeof img.url !== 'string') {
                     errors.push(`media.images[${idx}].url is required and must be a string`);
                 }
+                // ID is optional but should be a string if provided
+                if (img.id !== undefined && typeof img.id !== 'string') {
+                    errors.push(`media.images[${idx}].id must be a string`);
+                }
             });
         }
 
@@ -51,6 +55,10 @@ const validateCreateResource = (data) => {
             videos.forEach((vid, idx) => {
                 if (!vid.url || typeof vid.url !== 'string') {
                     errors.push(`media.videos[${idx}].url is required and must be a string`);
+                }
+                // ID is optional but should be a string if provided
+                if (vid.id !== undefined && typeof vid.id !== 'string') {
+                    errors.push(`media.videos[${idx}].id must be a string`);
                 }
             });
         }
@@ -63,6 +71,10 @@ const validateCreateResource = (data) => {
                 if (!doc.url || typeof doc.url !== 'string') {
                     errors.push(`media.documents[${idx}].url is required and must be a string`);
                 }
+                // ID is optional but should be a string if provided
+                if (doc.id !== undefined && typeof doc.id !== 'string') {
+                    errors.push(`media.documents[${idx}].id must be a string`);
+                }
             });
         }
 
@@ -73,6 +85,10 @@ const validateCreateResource = (data) => {
             urls.forEach((urlItem, idx) => {
                 if (!urlItem.url || typeof urlItem.url !== 'string') {
                     errors.push(`media.urls[${idx}].url is required and must be a string`);
+                }
+                // ID is optional but should be a string if provided
+                if (urlItem.id !== undefined && typeof urlItem.id !== 'string') {
+                    errors.push(`media.urls[${idx}].id must be a string`);
                 }
             });
         }
