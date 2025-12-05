@@ -662,7 +662,7 @@ router.post('/', upload.array('files', 10), resourceController.createResource);
  *                 message: "Resource not found"
  *                 status: 404
  */
-router.put('/:id', resourceController.updateResource);
+router.put('/:id', upload.any(), resourceController.updateResource);
 
 /**
  * @swagger

@@ -171,9 +171,39 @@ class ResourceService {
         if (resourceData.hashtags !== undefined) updateData.hashtags = resourceData.hashtags;
 
         // Simple approach: if media is provided, use it; otherwise keep existing
-        let media = existingResource.media || { link: [], files: [], images: [], videos: [], documents: [] };
+        // IMPORTANT: Parse media if it's a JSON string (from database)
+        let media = existingResource.media || { link: [], files: [], images: [], videos: [], urls: [] };
+        if (typeof media === 'string') {
+            try {
+                media = JSON.parse(media);
+            } catch (e) {
+                media = { link: [], files: [], images: [], videos: [], urls: [] };
+            }
+        }
+        // Ensure all arrays exist (remove documents - all files go to files array)
+        media = {
+            link: media.link || [],
+            files: media.files || [],
+            images: media.images || [],
+            videos: media.videos || [],
+            urls: media.urls || []
+        };
 
-        // If new files are uploaded, add them to the media
+        // This allows frontend to remove files or update captions
+        if (resourceData.media) {
+            media = resourceData.media;
+            // Ensure all arrays exist
+            media = {
+                link: media.link || [],
+                files: media.files || [],
+                images: media.images || [],
+                videos: media.videos || [],
+                documents: media.documents || [],
+                urls: media.urls || []
+            };
+        }
+
+        // If new files are uploaded, add them to the media (AFTER applying any media updates)
         if (newFiles && newFiles.length > 0) {
             // Get next IDs for each category
             const nextFileId = (media.files && media.files.length > 0)
@@ -185,14 +215,10 @@ class ResourceService {
             const nextVideoId = (media.videos && media.videos.length > 0)
                 ? Math.max(...media.videos.map(f => f.id || 0)) + 1
                 : 1;
-            const nextDocId = (media.documents && media.documents.length > 0)
-                ? Math.max(...media.documents.map(f => f.id || 0)) + 1
-                : 1;
 
             let fileIdCounter = nextFileId;
             let imageIdCounter = nextImageId;
             let videoIdCounter = nextVideoId;
-            let docIdCounter = nextDocId;
 
             for (const file of newFiles) {
                 const uploadResult = await fileService.uploadFile(file.buffer, file.originalname);
@@ -212,17 +238,32 @@ class ResourceService {
                 media.files = media.files || [];
                 media.files.push(fileData);
 
-                // Categorize by file type with separate IDs
-                if (uploadResult.resourceType === 'image') {
+                // Categorize by file extension/format (not just Cloudinary's resourceType)
+                // Cloudinary's 'auto' mode may incorrectly categorize PDFs as images
+                // Handle URL-encoded filenames (e.g., "file+name.pdf" -> "pdf")
+                const decodedName = decodeURIComponent(file.originalname);
+                const fileExtension = (decodedName.split('.').pop() || '').toLowerCase().split('?')[0]; // Remove query params if any
+                const format = (uploadResult.format || '').toLowerCase();
+                
+                // Image formats
+                const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+                // Video formats
+                const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'];
+                
+                const isImage = imageFormats.includes(fileExtension) || imageFormats.includes(format);
+                const isVideo = videoFormats.includes(fileExtension) || videoFormats.includes(format);
+                
+                // Categorize by file extension - images and videos go to their respective arrays
+                // All files (including PDFs, DOCX, etc.) already go to files array above
+                // Only images and videos get additional categorization
+                if (isImage) {
                     media.images = media.images || [];
                     media.images.push({ ...fileData, id: imageIdCounter++ });
-                } else if (uploadResult.resourceType === 'video') {
+                } else if (isVideo) {
                     media.videos = media.videos || [];
                     media.videos.push({ ...fileData, id: videoIdCounter++ });
-                } else {
-                    media.documents = media.documents || [];
-                    media.documents.push({ ...fileData, id: docIdCounter++ });
                 }
+                // PDFs, DOCX, TXT, etc. only go to files array (no documents array)
             }
         }
 
@@ -242,11 +283,6 @@ class ResourceService {
                     description: link.description || null
                 });
             });
-        }
-
-        // If frontend sends updated media structure (with removed items), use it
-        if (resourceData.media) {
-            media = resourceData.media;
         }
 
         updateData.media = media;

@@ -37,7 +37,7 @@ class FileService {
         if (!media || !fileId) return null;
 
         // Search in all media arrays
-        const arrays = ['files', 'images', 'videos', 'documents', 'urls'];
+        const arrays = ['files', 'images', 'videos', 'urls'];
 
         for (const arrayName of arrays) {
             if (media[arrayName] && Array.isArray(media[arrayName])) {
@@ -60,7 +60,7 @@ class FileService {
     removeFileById(media, fileId) {
         if (!media || !fileId) return { media, removedFile: null };
 
-        const arrays = ['files', 'images', 'videos', 'documents', 'urls'];
+        const arrays = ['files', 'images', 'videos', 'urls'];
         let removedFile = null;
 
         for (const arrayName of arrays) {
@@ -87,7 +87,7 @@ class FileService {
     updateFileById(media, fileId, updates) {
         if (!media || !fileId || !updates) return media;
 
-        const arrays = ['files', 'images', 'videos', 'documents', 'urls'];
+        const arrays = ['files', 'images', 'videos', 'urls'];
 
         for (const arrayName of arrays) {
             if (media[arrayName] && Array.isArray(media[arrayName])) {

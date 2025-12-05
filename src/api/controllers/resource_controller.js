@@ -102,7 +102,7 @@ const createResource = async (req, res, next) => {
         files: [],
         images: [],
         videos: [],
-        documents: []
+        urls: []
       };
 
       try {
@@ -126,17 +126,32 @@ const createResource = async (req, res, next) => {
           // Add to files array (all files with sequential IDs)
           media.files.push(fileData);
 
-          // Categorize by file type with separate IDs per category
-          if (uploadResult.resourceType === 'image') {
+          // Categorize by file extension/format (not just Cloudinary's resourceType)
+          // Cloudinary's 'auto' mode may incorrectly categorize PDFs as images
+          // Handle URL-encoded filenames (e.g., "file+name.pdf" -> "pdf")
+          const decodedName = decodeURIComponent(file.originalname);
+          const fileExtension = (decodedName.split('.').pop() || '').toLowerCase().split('?')[0]; // Remove query params if any
+          const format = (uploadResult.format || '').toLowerCase();
+          
+          // Image formats
+          const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+          // Video formats
+          const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'];
+          
+          const isImage = imageFormats.includes(fileExtension) || imageFormats.includes(format);
+          const isVideo = videoFormats.includes(fileExtension) || videoFormats.includes(format);
+          
+          // Categorize by file extension - images and videos go to their respective arrays
+          // All files (including PDFs, DOCX, etc.) already go to files array above
+          // Only images and videos get additional categorization
+          if (isImage) {
             const imageData = { ...fileData, id: media.images.length + 1 };
             media.images.push(imageData);
-          } else if (uploadResult.resourceType === 'video') {
+          } else if (isVideo) {
             const videoData = { ...fileData, id: media.videos.length + 1 };
             media.videos.push(videoData);
-          } else {
-            const docData = { ...fileData, id: media.documents.length + 1 };
-            media.documents.push(docData);
           }
+          // PDFs, DOCX, TXT, etc. only go to files array (no documents array)
         }
       } catch (uploadError) {
         return res.status(500).json({
@@ -479,7 +494,7 @@ const deleteFileFromResource = async (req, res, next) => {
     }
 
     // Validate type
-    const validTypes = ['images', 'videos', 'documents', 'files', 'urls'];
+    const validTypes = ['images', 'videos', 'files', 'urls'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         error: {
@@ -584,7 +599,7 @@ const updateFileInResource = async (req, res, next) => {
     }
 
     // Validate type
-    const validTypes = ['images', 'videos', 'documents', 'files', 'urls'];
+    const validTypes = ['images', 'videos', 'files', 'urls'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         error: {

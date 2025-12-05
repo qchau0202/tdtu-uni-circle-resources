@@ -14,18 +14,18 @@ const validateCreateResource = (data) => {
         errors.push('resource_type must be either URL or DOCUMENT');
     }
 
-    // Validate media (JSONB field that can contain files, images, videos, documents, urls)
+    // Validate media (JSONB field that can contain files, images, videos, urls)
     if (!data.media) {
         errors.push('media is required');
     } else if (typeof data.media !== 'object' || Array.isArray(data.media)) {
         errors.push('media must be an object');
     } else {
         // Validate media structure
-        const { files, images, videos, documents, urls } = data.media;
+        const { files, images, videos, urls } = data.media;
 
         // At least one media type should have data
-        if (!files?.length && !images?.length && !videos?.length && !documents?.length && !urls?.length) {
-            errors.push('media must contain at least one file, image, video, document, or url');
+        if (!files?.length && !images?.length && !videos?.length && !urls?.length) {
+            errors.push('media must contain at least one file, image, video, or url');
         }
 
         // Validate files array
@@ -63,20 +63,6 @@ const validateCreateResource = (data) => {
             });
         }
 
-        // Validate documents array
-        if (documents && !Array.isArray(documents)) {
-            errors.push('media.documents must be an array');
-        } else if (documents) {
-            documents.forEach((doc, idx) => {
-                if (!doc.url || typeof doc.url !== 'string') {
-                    errors.push(`media.documents[${idx}].url is required and must be a string`);
-                }
-                // ID is optional but should be a string if provided
-                if (doc.id !== undefined && typeof doc.id !== 'string') {
-                    errors.push(`media.documents[${idx}].id must be a string`);
-                }
-            });
-        }
 
         // Validate urls array
         if (urls && !Array.isArray(urls)) {
