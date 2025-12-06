@@ -596,6 +596,90 @@ router.post('/', upload.array('files', 10), resourceController.createResource);
  *                 type: array
  *                 items:
  *                   type: string
+ *               media:
+ *                 type: object
+ *                 description: Updated media structure with existing files (remove unwanted files from arrays)
+ *                 properties:
+ *                   images:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                   videos:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                   documents:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                   urls:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *           examples:
+ *             updateBasicFields:
+ *               summary: Update basic fields only
+ *               value:
+ *                 title: "Advanced Data Structures - Updated"
+ *                 description: "Comprehensive guide covering trees, graphs, and hash tables with practical examples"
+ *                 course_code: "CS201"
+ *                 resource_type: "DOCUMENT"
+ *                 hashtags: ["data-structures", "algorithms", "computer-science", "advanced"]
+ *             updateWithMediaManagement:
+ *               summary: Update with media management (keep only specific files)
+ *               value:
+ *                 title: "Data Structures Final Exam Resources"
+ *                 description: "Essential materials for final exam preparation"
+ *                 course_code: "503045"
+ *                 hashtags: ["final-exam", "data-structures", "important"]
+ *                 media:
+ *                   images:
+ *                     - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                       url: "https://res.cloudinary.com/image1.jpg"
+ *                       publicId: "resources/image1"
+ *                       format: "jpg"
+ *                       size: 245680
+ *                       originalName: "diagram.jpg"
+ *                       uploadedAt: "2025-12-05T10:30:00Z"
+ *                       caption: "Updated caption for diagram"
+ *                   documents:
+ *                     - id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+ *                       url: "https://res.cloudinary.com/doc1.pdf"
+ *                       publicId: "resources/doc1"
+ *                       format: "pdf"
+ *                       size: 1024000
+ *                       originalName: "chapter1.pdf"
+ *                       uploadedAt: "2025-12-05T10:30:00Z"
+ *                       caption: "Chapter 1 - Trees"
+ *                   urls:
+ *                     - id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+ *                       url: "https://example.com/resource"
+ *                       caption: "External reference link"
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               course_code:
+ *                 type: string
+ *               hashtags:
+ *                 type: string
+ *                 description: JSON array string, e.g., ["tag1", "tag2"]
+ *               media:
+ *                 type: string
+ *                 description: JSON string of existing media structure (files you want to keep)
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: New files to add (will be appended to existing media)
+ *           encoding:
+ *             files:
+ *               contentType: application/octet-stream
  *     responses:
  *       200:
  *         description: Resource updated successfully
