@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 module.exports = {
-  port: process.env.PORT || 3004,
+  port: process.env.PORT || 3005,
   env: process.env.NODE_ENV || 'development',
   supabase: {
     url: process.env.SUPABASE_URL,
